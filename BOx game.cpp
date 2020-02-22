@@ -71,11 +71,11 @@ void rander()                         //to visualize final game plot
         {
             if(i % 4 == 0)
             {
-                if(j % 4 != 0)table[i][j] = '#'; /// all zero and two
+                if(j % 4 != 0)table[i][j] = '-'; /// all zero and two
             }
             else
             {
-                if(j % 4 == 0)table[i][j] = '#'; /// all one and three
+                if(j % 4 == 0)table[i][j] = '|'; /// all one and three
             }
         }
     }
@@ -85,6 +85,7 @@ void printTable()
     gap
     for(int j, i = 0; i<=rc; i++)
     {
+        printf("  ");
         for(j = 0; j<=cc; j++)printf("%c",table[i][j]);
         gap
     }
@@ -98,10 +99,10 @@ int BoxNumberOf(int x, int y){
     x = x*10 + y;
     return toInt(holdAnchor[toString(x)]);
 }
-void giveEdgeTo(int boxNumber, int side, char c)
+int giveEdgeTo(int boxNumber, int side, char c)
 {
     trac[boxNumber][side] = 1;
-    int x = anchor[boxNumber][0],y = anchor[boxNumber][1], sideBox;
+    int x = anchor[boxNumber][0],y = anchor[boxNumber][1], sideBox = 0;
     switch(side)
     {
     case 0:
@@ -150,6 +151,7 @@ void giveEdgeTo(int boxNumber, int side, char c)
     }
 
     }
+    return sideBox;
 }
 void initializePlot()
 {
@@ -170,7 +172,7 @@ void initializePlot()
                     edgeCount++;
                 }
             }
-            else if(boxIndexX == i && boxIndexY == j)
+            else if(boxIndexX == i && boxIndexY == j)     //putting box number
             {
 
                 boxIndexY = updateBoxIndexY(boxIndexY);
@@ -183,9 +185,7 @@ void initializePlot()
                     table[i][j] = a + 48;
                     table[i][++j] = (boxCount % 10) + 48;
                 }
-                else
-                    table[i][j] = boxCount + 48;
-
+                else table[i][j] = boxCount + 48;
             }
             else
             {
@@ -194,8 +194,7 @@ void initializePlot()
                     table[i][j] = ' ';  /// all one and three
                     edgeCount++;
                 }
-                else
-                    table[i][j] = ' ';
+                else table[i][j] = ' ';
             }
             j++;
         }
@@ -207,7 +206,7 @@ void initializePlot()
 
 void printAllEnteredEdge()
 {
-    int sz = (rc/4) * (cc/4);
+    int sz = (rc * cc)/16;
     gap
     for(int i = 1; i<=sz; i++ )
     {
@@ -219,13 +218,39 @@ void printAllEnteredEdge()
         gap
     }
 }
+void updatePlot(int boxNumber, char ch)        // to update plot with corresponding player character
+{
+    int x = anchor[boxNumber][0] + 2, y = anchor[boxNumber][1] + 2;
+    table[x][y++] = ch;
+    table[x][y] = ' ';
+}
+
+bool isGoal(int box, char ch)
+{
+    if(trac[box][0] == 1 && trac[box][1] == 1 && trac[box][2] == 1 && trac[box][3] == 1)
+    {
+        updatePlot(box,ch);
+        return true;
+    }
+    return false;
+
+}
 int main()
 {
     int r = 2, c = 2, userPoint = 0, gameEngine = 0 ;    /// max box capacity 99
-    int edg, box, side;
+    int edg, box, side, sideBox;
+    int playerPoint[] = {0,0};
+    char ch = '*';
     string st;
+    string playerName[2];
+    printf("Enter first player name: ");
+    cin>>playerName[0];
+    printf("Enter second player name: ");
+    cin>>playerName[1];
+    getchar();
+    system("cls");
+    printf("%s's character : *\n%s's character : #\n",playerName[0].c_str(),playerName[1].c_str());
     do{
-        system("cls");
         printf("***Max box capacity 99***\n");
         printf("How many box on column: ");
         scanf("%d",&c);
@@ -239,34 +264,50 @@ int main()
     edg = edgeCount;
     printTable();
     printf("\n.....Game started.....");
+    c *= r;                // total box count
+    r = 0;                ///reusing variable r for tracking user input
+
     while(edg > 0)
     {
         gap
+        printf("\nNow %s's turn.\n",playerName[r].c_str());
         printf("Enter box number: ");
         scanf("%d",&box);
         printf("0->up, 1->right, 2->down, 3->left\n");
         printf("Enter edge index: ");
         scanf("%d",&side);
-        if(side >=0 && side < 4 && box > 0 && box <= (r*c) )
+        if(side >=0 && side < 4 && box > 0 && box <= c )
         {
-            if(trac[box][side] == 1)
-            {
-                printf("Already entered");
-            }
+            if(trac[box][side] == 1) printf("Already entered");
             else
             {
                 system("cls");
-                giveEdgeTo(box,side,'#');
+                sideBox = (side % 2 == 0) ? giveEdgeTo(box,side,'-') : giveEdgeTo(box,side,'|');
                 st = (side == 0)?"upper":((side == 1)?"right":((side == 2)?"down":"left"));
                 cout<<"Last entered "<<st<<" side of box "<<box;gap
+                if(isGoal(box, ch))playerPoint[r]++;
+                if(sideBox != 0 && isGoal(sideBox, ch))playerPoint[r]++;
                 printTable();
-                printf("\nYour's point: %d, Computer's point: %d",userPoint,gameEngine);
-                edg --;
-                printAllEnteredEdge();
+                printf("\n%s's(*) point:%d   :   %s's(#) point:%d",playerName[0].c_str(),playerPoint[0],playerName[1].c_str(),playerPoint[1]);
+                edg--;
+                if(r % 2 == 0)
+                {
+                    ch = '#';
+                    ++r;
+                }
+                else
+                {
+                    ch = '*';
+                    r = 0;
+                }
+                //printAllEnteredEdge();
             }
         }
         else printf("You just crossed your limit.");
     }
-    printf("\nFinally you finished the game.!!");
+    printf("\nFinally you finished the game.!!\n");
+    if(playerPoint[0] > playerPoint[1])printf("Hoho, %s won the game ........\n%s you played well",playerName[0].c_str(),playerName[1].c_str());
+    else if(playerPoint[0] < playerPoint[1])printf("Hoho, %s won the game ........\n%s you played well",playerName[1].c_str(), playerName[0].c_str());
+    else printf("...Match draw..\n\n\n");
     return 0;
 }
